@@ -32,3 +32,25 @@ class Neuron extends Module {
         return `${this.nonlin ? 'ReLU' : 'Linear'}Neuron(${this.w.length})`
     }
 }
+
+class Layer extends Module {
+    neurons: Neuron[]
+
+    constructor(nin: number, nout: number, nonlin = true) {
+        super()
+        this.neurons = Array.from({length: nout}, () => new Neuron(nin, nonlin))
+    }
+
+    call(x: Value[]): Value | Value[] {
+        const out = this.neurons.map(n => n.call(x))
+        return out.length === 1 ? out[0] : out
+    }
+
+    parameters(): Value[] {
+        return this.neurons.flatMap(n => n.parameters())
+    }
+
+    toString(): string {
+        return `Layer of [${this.neurons.map(n => n.toString()).join(', ')}]`
+    }
+}
