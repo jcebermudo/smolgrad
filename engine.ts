@@ -28,4 +28,67 @@ class Value {
         }
         return out
     }
+
+    mul(other: Value | number): Value {
+        const o = other instanceof Value ? other : new Value(other)
+        const out = new Value(this.data * o.data, [this, o], '*')
+        out._backward = () => {
+            this.grad += out.grad * o.data
+            o.grad += this.data * out.grad
+        }
+        return out
+    }
+
+    tanh(): Value {
+        const t = Math.tanh(this.data)
+        const out = new Value(t, [this], 'tanh')
+        out._backward = () => {
+            this.grad += (1 - t ** 2) * out.grad // sech^2(x)
+        }
+        return out
+    }
+
+    relu(): Value {
+        const out = new Value(Math.max(0, this.data), [this], 'relu')
+        out._backward = () => {
+            this.grad += (this.data > 0 ? 1 : 0) * out.grad
+        }
+        return out
+    }
+
+    exp(): Value {
+        const e = Math.exp(this.data)
+        const out = new Value(e, [this], 'exp')
+        out._backward = () => {
+            this.grad += e * out.grad
+        }
+        return out
+    }
+
+    pow(n: number): Value {
+        const out = new Value(this.data ** n, [this], '' as Operation)
+        out._backward = () => {
+            this.grad += n * this.data ** (n-1) * out.grad
+        }
+        return out
+    }
+
+    backward(): void {
+        // topo sort to process nodes in order
+        const topo: Value[] = []
+        const visited = new Set<Value>()
+        const build = (v: Value) => {
+            if (!visited.has(v)) {
+                visited.add(v)
+                for (const child of v._prev) build(child)
+                topo.push(v)
+            }
+        }
+        build(this)
+
+        this.grad = 1 // derivatve with respect to itself is 1
+        for (const v of topo.reverse()) v._backward()
+    }
+
+
  }
