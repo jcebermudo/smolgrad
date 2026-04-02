@@ -54,3 +54,31 @@ class Layer extends Module {
         return `Layer of [${this.neurons.map(n => n.toString()).join(', ')}]`
     }
 }
+
+class MLP extends Module {
+    layers: Layer[]
+
+    constructor(nin: number, nouts: number[]) {
+        super()
+        const sz = [nin, ...nouts]
+        this.layers = nouts.map((_, i) =>
+            new Layer(sz[i], sz[i + 1], i !== nouts.length - 1)
+        )
+    }
+
+    call(x: Value[]): Value | Value[] {
+        let out: Value | Value[] = x
+        for (const layer of this.layers) {
+            out = layer.call(out as Value[])
+        }
+        return out
+    }
+
+    parameters(): Value[] {
+        return this.layers.flatMap(l => l.parameters())
+    }
+
+    toString(): string {
+        return `MLP of [${this.layers.map(l => l.toString()).join(', ')}]`
+    }
+}
