@@ -90,5 +90,39 @@ class Value {
         for (const v of topo.reverse()) v._backward()
     }
 
+neg(): Value {
+    return this.mul(-1)
+}
 
+sub(other: Value | number): Value {
+    const o = other instanceof Value ? other : new Value(other)
+    return this.add(o.neg())
+}
+
+rsub(other: Value | number): Value {
+    const o = other instanceof Value ? other : new Value(other)
+    return o.add(this.neg())
+}
+
+radd(other: Value | number): Value {
+    return this.add(other)
+}
+
+rmul(other: Value | number): Value {
+    return this.mul(other)
+}
+
+div(other: Value | number): Value {
+    const o = other instanceof Value ? other : new Value(other)
+    return this.mul(o.pow(-1))
+}
+
+rdiv(other: Value | number): Value {
+    const o = other instanceof Value ? other : new Value(other)
+    return o.mul(this.pow(-1))
+}
+
+toString(): string {
+    return `Value(data=${this.data}, grad=${this.grad})`
+}
  }
