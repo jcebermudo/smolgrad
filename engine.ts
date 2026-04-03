@@ -1,4 +1,4 @@
-// shape size
+// helpers
 function shapeSize(shape: number[]): number {
     return shape.reduce((a, b) => a * b, 1)
 }
@@ -16,6 +16,34 @@ function broadcastShapes(a: number[], b: number[]): number[] {
     return out
 }
 
+
+// undo broadcasting
+function sumToShape(grad: Float32Array, gradShape: number[], targetShape: number[]): Float32Array {
+    const padded = Array(gradShape.length - targetShape.length).fill(1).concat(targetShape)
+    let result = grad
+    let currentShape = [...gradShape]
+
+    for (let axis = currentShape.length - 1; axis >= 0; axis--) {
+        if(padded[axis] === 1 && currentShape[axis] !== 1) {
+            result = sumAlongAxis(result, currentShape, axis)
+            currentShape[axis] = 1
+        }
+    }
+
+    return result.slice(0, shapeSize(targetShape))
+}
+
+function sumAlongAxis(data: Float32Array, shape: number[], axis: number): Float32Array {
+  const outerSize = shape.slice(0, axis).reduce((a, b) => a * b, 1)
+  const axisSize  = shape[axis]
+  const innerSize = shape.slice(axis + 1).reduce((a, b) => a * b, 1)
+  const out = new Float32Array(outerSize * innerSize)
+  for (let o = 0; o < outerSize; o++)
+    for (let a = 0; a < axisSize; a++)
+      for (let i = 0; i < innerSize; i++)
+        out[o * innerSize + i] += data[o * axisSize * innerSize + a * innerSize + i]
+  return out
+}
 
 
 type Operation = '+' | '*' | 'tanh' | 'relu' | 'exp' | ''
