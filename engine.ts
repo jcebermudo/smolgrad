@@ -1,3 +1,23 @@
+// shape size
+function shapeSize(shape: number[]): number {
+    return shape.reduce((a, b) => a * b, 1)
+}
+
+function broadcastShapes(a: number[], b: number[]): number[] {
+    const out: number[] = []
+    const maxLen = Math.max(a.length, b.length)
+    for (let i = 0; i < maxLen; i++) {
+        const da = a[a.length - 1 - i] ?? 1
+        const db = b[b.length - 1 - i] ?? 1
+        if (da !== db && da !== 1 && db !== 1)
+            throw new Error(`Cannot broadcast ${a} and ${b}`)
+        out.unshift(Math.max(da, db))
+    }
+    return out
+}
+
+
+
 type Operation = '+' | '*' | 'tanh' | 'relu' | 'exp' | ''
 
 class Value {
