@@ -46,7 +46,8 @@ function sumAlongAxis(data: Float32Array, shape: number[], axis: number): Float3
 }
 
 
-type Operation = '+' | '*' | 'tanh' | 'relu' | 'exp' | ''
+type Operation = '+' | '*' | 'matmul' | 'tanh' | 'relu' | 'exp' | 'log' |
+                 'sum' | 'reshape' | 'T' | 'broadcast' | ''
 
 class Value {
     data: number;
