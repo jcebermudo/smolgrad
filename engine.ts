@@ -139,12 +139,28 @@ class Tensor {
     return out;
   }
 
-  mul(other: Value | number): Value {
-    const o = other instanceof Value ? other : new Value(other);
-    const out = new Value(this.data * o.data, [this, o], "*");
+  mul(other: Tensor): Tensor {
+    const outShape = broadcastShapes(this.shape, other.shape);
+    const n = shapeSize(outShape);
+    const out = new Tensor(new Float32Array(n), outShape);
+
+    for (let i = 0; i < n; i++) {
+      out.data[i] = this._bget(i, outShape) * other._bget(i, outShape);
+    }
+
+    out._prev = new Set([this, other]);
+    out._op = "*";
     out._backward = () => {
-      this.grad += out.grad * o.data;
-      o.grad += this.data * out.grad;
+      const dA = new Float32Array(n);
+      const dB = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        dA[i] = other._bget(i, outShape) * out.grad[i];
+        dB[i] = this._bget(i, outShape) * out.grad[i];
+      }
+      const sdA = sumToShape(dA, outShape, this.shape);
+      const sdB = sumToShape(dB, outShape, other.shape);
+      for (let i = 0; i < this.grad.length; i++) this.grad[i] += sdA[i];
+      for (let i = 0; i < other.grad.length; i++) other.grad[i] += sdB[i];
     };
     return out;
   }
