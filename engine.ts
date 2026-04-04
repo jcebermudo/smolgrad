@@ -165,6 +165,36 @@ class Tensor {
     return out;
   }
 
+  matmul(other: Tensor): Tensor {
+    const [M, K] = this.shape;
+    const [K2, N] = other.shape;
+    if (K !== K2)
+      throw new Error(`matmul shape mismatch: ${this.shape} @ ${other.shape}`);
+
+    const out = Tensor.zeros([M, N]);
+    for (let m = 0; m < M; m++)
+      for (let n = 0; n < N; n++)
+        for (let k = 0; k < K; k++)
+          out.data[m * N + n] += this.data[m * K + k] * other.data[k * N + n];
+
+    out._prev = new Set([this, other]);
+    out._op = "matmul";
+    out._backward = () => {
+      // dL/dA = dL/dOut @ B.T    shape [M,N] @ [N,K] → [M,K]
+      for (let m = 0; m < M; m++)
+        for (let k = 0; k < K; k++)
+          for (let n = 0; n < N; n++)
+            this.grad[m * K + k] += out.grad[m * N + n] * other.data[k * N + n];
+
+      // dL/dB = A.T @ dL/dOut   shape [K,M] @ [M,N] → [K,N]
+      for (let k = 0; k < K; k++)
+        for (let n = 0; n < N; n++)
+          for (let m = 0; m < M; m++)
+            other.grad[k * N + n] += this.data[m * K + k] * out.grad[m * N + n];
+    };
+    return out;
+  }
+
   tanh(): Value {
     const t = Math.tanh(this.data);
     const out = new Value(t, [this], "tanh");
