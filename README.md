@@ -1,3 +1,5 @@
-# smolgrad
+# Kapi
 
-smolgrad is a minimalistic Typescript reimplementation of micrograd by Andrej Karpathy. Much like micrograd, smolgrad is meant to be a learning tool for understanding how to build neural networks and implement backpropagation from scratch.
+Kapi is a tiny deep learning framework in TypeScript. It's meant to be a learning tool for understanding how to build and train simple neural networks. 
+
+This started off as a simple reimplementation of Andrej Karpathy's micrograd, but has evolved into a framework for deep learning tasks in TypeScript with PyTorch-like syntax.
