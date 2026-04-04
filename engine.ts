@@ -98,15 +98,26 @@ class Tensor {
 
     // ops
 
-    add(other: Value | number): Value {
-        const o = other instanceof Value ? other : new Value(other)
-        const out = new Value(this.data + o.data, [this, o], '+')
-        out._backward = () => {
-            this.grad += out.grad
-            o.grad += out.grad
-        }
-        return out
+    add(other: Tensor): Tensor {
+    const outShape = broadcastShapes(this.shape, other.shape)
+    const n        = shapeSize(outShape)
+    const out      = new Tensor(new Float32Array(n), outShape)
+
+    // broadcast-aware forward
+    for (let i = 0; i < n; i++) {
+      out.data[i] = this._bget(i, outShape) + other._bget(i, outShape)
     }
+
+    out._prev = new Set([this, other])
+    out._op   = '+'
+    out._backward = () => {
+      const dA = sumToShape(out.grad, outShape, this.shape)
+      const dB = sumToShape(out.grad, outShape, other.shape)
+      for (let i = 0; i < this.grad.length; i++)  this.grad[i]  += dA[i]
+      for (let i = 0; i < other.grad.length; i++) other.grad[i] += dB[i]
+    }
+    return out
+  }
 
     mul(other: Value | number): Value {
         const o = other instanceof Value ? other : new Value(other)
