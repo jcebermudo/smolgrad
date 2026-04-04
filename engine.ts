@@ -49,22 +49,42 @@ function sumAlongAxis(data: Float32Array, shape: number[], axis: number): Float3
 type Operation = '+' | '*' | 'matmul' | 'tanh' | 'relu' | 'exp' | 'log' |
                  'sum' | 'reshape' | 'T' | 'broadcast' | ''
 
-class Value {
-    data: number;
-    grad: number;
-    _prev: Set<Value>
-    _op: Operation
-    label: string
-    private _backward: () => void
+class Tensor {
+    data:  Float32Array
+    grad:  Float32Array
+    shape: number[]
+    _prev:     Set<Tensor>
+    _op:       Operation
+    _backward: () => void
 
-    constructor(data: number, _children: Value[] = [], _op: Operation = '', label = '') {
-        this.data = data;
-        this.grad = 0;
-        this._prev = new Set(_children);
-        this._op = _op
-        this.label = label
+    constructor(data: Float32Array | number[], shape: number[]) {
+        this.data  = data instanceof Float32Array ? data : new Float32Array(data)
+        this.grad  = new Float32Array(this.data.length)   // zero-initialised
+        this.shape = shape
+        this._prev     = new Set()
+        this._op       = ''
         this._backward = () => {}
     }
+
+    static scalar(v: number): Tensor {
+    return new Tensor([v], [])   // shape=[] means 0-d scalar
+    }
+
+    static zeros(shape: number[]): Tensor {
+        return new Tensor(new Float32Array(shapeSize(shape)), shape)
+    }
+
+    static randn(shape: number[]): Tensor {
+        const n = shapeSize(shape)
+        const data = new Float32Array(n)
+        for(let i = 0; i < n; i++) {
+            // box-muller transfor for normal
+            const u = 1 - Math.random(), v = Math.random()
+            data[i] = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
+        }
+        return new Tensor(data, shape)
+    }
+
 
     // ops
 
