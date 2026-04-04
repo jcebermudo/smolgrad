@@ -209,142 +209,145 @@ class Tensor {
   }
 
   relu(): Tensor {
-    const out = Tensor.zeros(this.shape)
-    for (let i = 0; i < this.data.length; i++) out.data[i] = Math.max(0, this.data[i])
-    out._prev = new Set([this])
-    out._op   = 'relu'
+    const out = Tensor.zeros(this.shape);
+    for (let i = 0; i < this.data.length; i++)
+      out.data[i] = Math.max(0, this.data[i]);
+    out._prev = new Set([this]);
+    out._op = "relu";
     out._backward = () => {
       for (let i = 0; i < this.grad.length; i++)
-        this.grad[i] += (this.data[i] > 0 ? 1 : 0) * out.grad[i]
-    }
-    return out
+        this.grad[i] += (this.data[i] > 0 ? 1 : 0) * out.grad[i];
+    };
+    return out;
   }
 
   exp(): Tensor {
-    const out = Tensor.zeros(this.shape)
-    for (let i = 0; i < this.data.length; i++) out.data[i] = Math.exp(this.data[i])
-    out._prev = new Set([this])
-    out._op   = 'exp'
+    const out = Tensor.zeros(this.shape);
+    for (let i = 0; i < this.data.length; i++)
+      out.data[i] = Math.exp(this.data[i]);
+    out._prev = new Set([this]);
+    out._op = "exp";
     out._backward = () => {
       for (let i = 0; i < this.grad.length; i++)
-        this.grad[i] += out.data[i] * out.grad[i]
-    }
-    return out
+        this.grad[i] += out.data[i] * out.grad[i];
+    };
+    return out;
   }
 
   log(): Tensor {
-    const out = Tensor.zeros(this.shape)
-    for (let i = 0; i < this.data.length; i++) out.data[i] = Math.log(this.data[i])
-    out._prev = new Set([this])
-    out._op   = 'log'
+    const out = Tensor.zeros(this.shape);
+    for (let i = 0; i < this.data.length; i++)
+      out.data[i] = Math.log(this.data[i]);
+    out._prev = new Set([this]);
+    out._op = "log";
     out._backward = () => {
       for (let i = 0; i < this.grad.length; i++)
-        this.grad[i] += (1 / this.data[i]) * out.grad[i]
-    }
-    return out
+        this.grad[i] += (1 / this.data[i]) * out.grad[i];
+    };
+    return out;
   }
 
   sum(axis?: number): Tensor {
     if (axis === undefined) {
       // full sum → scalar
-      const s = this.data.reduce((a, b) => a + b, 0)
-      const out = new Tensor([s], [])
-      out._prev = new Set([this])
-      out._op   = 'sum'
+      const s = this.data.reduce((a, b) => a + b, 0);
+      const out = new Tensor([s], []);
+      out._prev = new Set([this]);
+      out._op = "sum";
       out._backward = () => {
-        for (let i = 0; i < this.grad.length; i++) this.grad[i] += out.grad[0]
-      }
-      return out
+        for (let i = 0; i < this.grad.length; i++) this.grad[i] += out.grad[0];
+      };
+      return out;
     }
     // axis sum
-    const newShape = this.shape.filter((_, i) => i !== axis)
-    const out = Tensor.zeros(newShape.length ? newShape : [1])
-    const reduced = sumAlongAxis(this.data, this.shape, axis)
-    out.data.set(reduced)
-    out._prev = new Set([this])
-    out._op   = 'sum'
+    const newShape = this.shape.filter((_, i) => i !== axis);
+    const out = Tensor.zeros(newShape.length ? newShape : [1]);
+    const reduced = sumAlongAxis(this.data, this.shape, axis);
+    out.data.set(reduced);
+    out._prev = new Set([this]);
+    out._op = "sum";
     out._backward = () => {
       // broadcast grad back along the summed axis
-      const axisSize  = this.shape[axis]
-      const innerSize = this.shape.slice(axis + 1).reduce((a, b) => a * b, 1)
-      const outerSize = this.shape.slice(0, axis).reduce((a, b) => a * b, 1)
+      const axisSize = this.shape[axis];
+      const innerSize = this.shape.slice(axis + 1).reduce((a, b) => a * b, 1);
+      const outerSize = this.shape.slice(0, axis).reduce((a, b) => a * b, 1);
       for (let o = 0; o < outerSize; o++)
         for (let a = 0; a < axisSize; a++)
           for (let i = 0; i < innerSize; i++)
             this.grad[o * axisSize * innerSize + a * innerSize + i] +=
-              out.grad[o * innerSize + i]
-    }
-    return out
+              out.grad[o * innerSize + i];
+    };
+    return out;
   }
 
   reshape(newShape: number[]): Tensor {
     if (shapeSize(newShape) !== shapeSize(this.shape))
-      throw new Error('reshape: size mismatch')
-    const out   = new Tensor(this.data, newShape)   // shares buffer
-    out._prev   = new Set([this])
-    out._op     = 'reshape'
+      throw new Error("reshape: size mismatch");
+    const out = new Tensor(this.data, newShape); // shares buffer
+    out._prev = new Set([this]);
+    out._op = "reshape";
     out._backward = () => {
-      for (let i = 0; i < this.grad.length; i++) this.grad[i] += out.grad[i]
-    }
-    return out
+      for (let i = 0; i < this.grad.length; i++) this.grad[i] += out.grad[i];
+    };
+    return out;
   }
 
   get T(): Tensor {
-    const [R, C] = this.shape
-    const out    = Tensor.zeros([C, R])
+    const [R, C] = this.shape;
+    const out = Tensor.zeros([C, R]);
     for (let r = 0; r < R; r++)
-      for (let c = 0; c < C; c++)
-        out.data[c * R + r] = this.data[r * C + c]
-    out._prev = new Set([this])
-    out._op   = 'T'
+      for (let c = 0; c < C; c++) out.data[c * R + r] = this.data[r * C + c];
+    out._prev = new Set([this]);
+    out._op = "T";
     out._backward = () => {
       for (let r = 0; r < R; r++)
-        for (let c = 0; c < C; c++)
-          this.grad[r * C + c] += out.grad[c * R + r]
-    }
-    return out
+        for (let c = 0; c < C; c++) this.grad[r * C + c] += out.grad[c * R + r];
+    };
+    return out;
   }
 
   // backward pass
   backward(): void {
-    const topo:    Tensor[] = []
-    const visited           = new Set<Tensor>()
+    const topo: Tensor[] = [];
+    const visited = new Set<Tensor>();
     const build = (t: Tensor) => {
       if (!visited.has(t)) {
-        visited.add(t)
-        for (const child of t._prev) build(child)
-        topo.push(t)
+        visited.add(t);
+        for (const child of t._prev) build(child);
+        topo.push(t);
       }
-    }
-    build(this)
+    };
+    build(this);
 
-    this.grad.fill(1)                               // dL/dL = 1
-    for (const t of topo.reverse()) t._backward()
+    this.grad.fill(1); // dL/dL = 1
+    for (const t of topo.reverse()) t._backward();
   }
 
-  zeroGrad(): void { this.grad.fill(0) }
+  zeroGrad(): void {
+    this.grad.fill(0);
+  }
 
   private _bget(flatIdx: number, outShape: number[]): number {
     // convert flat index in outShape to flat index in this.shape
-    const coords: number[] = []
-    let rem = flatIdx
+    const coords: number[] = [];
+    let rem = flatIdx;
     for (let i = outShape.length - 1; i >= 0; i--) {
-      coords.unshift(rem % outShape[i])
-      rem = Math.floor(rem / outShape[i])
+      coords.unshift(rem % outShape[i]);
+      rem = Math.floor(rem / outShape[i]);
     }
     // align coords to this.shape (left-pad with 0)
-    const pad    = outShape.length - this.shape.length
-    let myFlat   = 0
-    let stride   = 1
+    const pad = outShape.length - this.shape.length;
+    let myFlat = 0;
+    let stride = 1;
     for (let i = this.shape.length - 1; i >= 0; i--) {
-      const c = coords[i + pad]
-      myFlat += (this.shape[i] === 1 ? 0 : c) * stride
-      stride *= this.shape[i]
+      const c = coords[i + pad];
+      myFlat += (this.shape[i] === 1 ? 0 : c) * stride;
+      stride *= this.shape[i];
     }
-    return this.data[myFlat]
+    return this.data[myFlat];
   }
 
   toString(): string {
-    return `Tensor(shape=[${this.shape}], data=[${Array.from(this.data).slice(0, 6)}${this.data.length > 6 ? '...' : ''}])`
+    return `Tensor(shape=[${this.shape}], data=[${Array.from(this.data).slice(0, 6)}${this.data.length > 6 ? "..." : ""}])`;
   }
 }
