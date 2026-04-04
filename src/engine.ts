@@ -1,5 +1,5 @@
 // computes the total number of elements from a shape array
-function shapeSize(shape: number[]): number {
+export function shapeSize(shape: number[]): number {
   return shape.reduce((a, b) => a * b, 1);
 }
 
@@ -65,7 +65,7 @@ function sumAlongAxis(
   return out;
 }
 
-type Operation =
+export type Operation =
   | "+"
   | "*"
   | "matmul"
@@ -77,9 +77,10 @@ type Operation =
   | "reshape"
   | "T"
   | "broadcast"
+  | "log_softmax"
   | "";
 
-class Tensor {
+export class Tensor {
   data: Float32Array;
   grad: Float32Array;
   shape: number[];
