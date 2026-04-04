@@ -64,3 +64,32 @@ function logSoftmax(logits: Tensor): Tensor {
 
   return out;
 }
+
+// nll loss
+// logProbs: [batch, C] log-probabilities    targets: class indices, length batch
+// kept unexported — implementation detail of crossEntropyLoss
+function nllLoss(logProbs: Tensor, targets: number[]): Tensor {
+  const [B, C] = logProbs.shape;
+
+  // pick the log-prob of the correct class for each sample, average
+  let total = 0;
+  for (let b = 0; b < B; b++) total += logProbs.data[b * C + targets[b]];
+  const loss = -total / B;
+
+  const out = new Tensor([loss], []);
+  out._prev = new Set([logProbs]);
+  out._op   = "";
+
+  // only the correct class slot gets a gradient
+  out._backward = () => {
+    for (let b = 0; b < B; b++)
+      logProbs.grad[b * C + targets[b]] -= out.grad[0] / B;
+  };
+
+  return out;
+}
+
+// cross entropy loss
+export function crossEntropyLoss(logits: Tensor, targets: number[]): Tensor {
+  return nllLoss(logSoftmax(logits), targets);
+}
