@@ -195,11 +195,15 @@ class Tensor {
     return out;
   }
 
-  tanh(): Value {
-    const t = Math.tanh(this.data);
-    const out = new Value(t, [this], "tanh");
+  tanh(): Tensor {
+    const out = Tensor.zeros(this.shape);
+    for (let i = 0; i < this.data.length; i++)
+      out.data[i] = Math.tanh(this.data[i]);
+    out._prev = new Set([this]);
+    out._op = "tanh";
     out._backward = () => {
-      this.grad += (1 - t ** 2) * out.grad; // sech^2(x)
+      for (let i = 0; i < this.grad.length; i++)
+        this.grad[i] += (1 - out.data[i] ** 2) * out.grad[i];
     };
     return out;
   }
