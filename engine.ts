@@ -1,8 +1,12 @@
-// helpers
+// computes the total number of elements from a shape array
 function shapeSize(shape: number[]): number {
     return shape.reduce((a, b) => a * b, 1)
 }
 
+// broadcasting: a way to make arrays of different shapes work together in ops like add and mul
+// instead of copying data, smaller arrays are "virtually" expanded
+// takes two shape arrays and returns the resulting shape after broadcasting them together
+// this is just a compatability check + calculator
 function broadcastShapes(a: number[], b: number[]): number[] {
     const out: number[] = []
     const maxLen = Math.max(a.length, b.length)
@@ -17,7 +21,9 @@ function broadcastShapes(a: number[], b: number[]): number[] {
 }
 
 
-// undo broadcasting
+// for backprop for broadcasted operations
+// reduces a gradient back to a smaller shape after broadcasting
+// gradients must match the original parameter's shape
 function sumToShape(grad: Float32Array, gradShape: number[], targetShape: number[]): Float32Array {
     const padded = Array(gradShape.length - targetShape.length).fill(1).concat(targetShape)
     let result = grad
@@ -33,6 +39,10 @@ function sumToShape(grad: Float32Array, gradShape: number[], targetShape: number
     return result.slice(0, shapeSize(targetShape))
 }
 
+// sums a flattened multi-d array along a specified axis
+// the multi-d array is flattened but the shape is used to tell how to interpret it
+// the axis: dimensions along which you want to sum
+// out/in sizes: helps calculate the correct indices in the 1d array
 function sumAlongAxis(data: Float32Array, shape: number[], axis: number): Float32Array {
   const outerSize = shape.slice(0, axis).reduce((a, b) => a * b, 1)
   const axisSize  = shape[axis]
