@@ -49,6 +49,11 @@ class Value {
 
     pow(other: number): Value {
         const out = new Value(this.data ** other, [this], `**${other}`);
+        // use the power rule
+        // d(out)/d(a) = n * a^(n-1)
+        out._backward = () => {
+            this.grad += other * this.data ** (other - 1) * out.grad;
+        }
         return out;
     }
 
