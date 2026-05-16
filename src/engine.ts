@@ -1,6 +1,8 @@
 // converted from Karpathy's micrograd engine.py
 // https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py 
 
+// p derivs, treat the not focused vars as constants
+
 class Value {
     data: number;
     grad: number;
@@ -19,12 +21,29 @@ class Value {
     add(other: Value | number): Value {
         const o = other instanceof Value ? other : new Value(other);
         const out = new Value(this.data + o.data, [this, o], "+");
+        // a + b 
+        // partial derivatives
+        // d(out)/d(a) = 1
+        // d(out)/a(b) = 1
+        out._backward = () => {
+            this.grad += out.grad;
+            o.grad += out.grad;
+        };
         return out;
     }
 
     mul(other: Value | number): Value {
         const o = other instanceof Value ? other : new Value(other);
         const out = new Value(this.data * o.data, [this, o], "*");
+        // a * b
+        // partial detivaitves
+        // d(out)/d(a) = b
+        // d(out)/d(b) = a`
+        // switching the values of a and b below (based on how you do partial derivatives):
+        out._backward = () => {
+            this.grad += o.data * out.grad;
+            o.grad += this.data * out.grad;
+        }
         return out;
     }
 
