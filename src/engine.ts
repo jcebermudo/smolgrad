@@ -52,7 +52,31 @@ class Value {
         return this.mul(o.pow(-1));
     }
 
-    // todo bp
+    // backward pass
+    backward(): void {
+        // topological sort
+        // material for my understanding: https://www.geeksforgeeks.org/dsa/topological-sorting/
+        const topo: Value[] = [];
+        const visited = new Set<Value>();
+        // gives an array where the earliest instantiated Value comes first
+        const buildTopo = (v: Value) => {
+            if (!visited.has(v)) {
+                visited.add(v);
+                for (const child of v._prev) {
+                    buildTopo(child);
+                }
+                topo.push(v);
+            }
+        };
+        buildTopo(this);
 
+        this.grad = 1;
+        for (let i = topo.length - 1; i >= 0; i--) {
+            topo[i]._backward();
+        }
+    }
 
+    toString(): string {
+        return `Value(data=${this.data}, grad=${this.grad})`;
+    }
 }
