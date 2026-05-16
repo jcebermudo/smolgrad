@@ -3,7 +3,7 @@
 
 // p derivs, treat the not focused vars as constants
 
-class Value {
+export class Value {
     data: number;
     grad: number;
     private _backward: () => void;
