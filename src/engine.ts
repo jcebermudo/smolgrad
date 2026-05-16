@@ -57,8 +57,16 @@ class Value {
         return out;
     }
 
+    // activation func
     relu(): Value {
         const out = new Value(this.data < 0 ? 0 : this.data, [this], "ReLU");
+        // ReLU formula: f(x) = max(0,x)
+        // relu is piecewise
+        // x < 0 -> f(x) = 0 -> d(f)/d(x) = 0
+        // x >= 0 -> f(x) = x -. d(f)/d(x) = 1
+        out._backward = () => {
+            this.grad += (out.data > 0 ? 1 : 0) * out.grad;
+        }
         return out;
     }
 
