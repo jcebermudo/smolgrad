@@ -35,7 +35,7 @@ for (let epoch = 0; epoch <= epochs; epoch++) {
         p.data -= learningRate * p.grad;
     }
 
-    if (epoch % 100 === 0) {
+    if (epoch <= 99 || epoch % 100 === 0) {
         console.log(`epoch ${epoch}  loss: ${loss.data.toFixed(6)}`);
     }
 }
