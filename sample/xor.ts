@@ -31,6 +31,7 @@ for (let epoch = 0; epoch <= epochs; epoch++) {
 
     // SGD update
     for (const p of model.parameters()) {
+        // parameter - learning rate(gradient of loss function with respect to the parameter)
         p.data -= learningRate * p.grad;
     }
 
