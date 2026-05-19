@@ -43,14 +43,28 @@ export class Tensor {
         return out;
     }
 
-    mul(scalar: number): Tensor {
-        const outData = this.data.map(v => v * scalar);
-        const out = new Tensor(outData, this.shape, [this], "*");
-        out._backward = () => {
-            for (let i = 0; i < out.grad.length; i++)
-                this.grad[i] += scalar * out.grad[i];
+    mul(other: number | Tensor): Tensor {
+        if (typeof other === "number") {
+            const outData = this.data.map(v => v * other);
+            const out = new Tensor(outData, this.shape, [this], "*");
+            out._backward = () => {
+                for (let i = 0; i < out.grad.length; i++)
+                    this.grad[i] += other * out.grad[i];
+            };
+            return out;
         }
-        return out
+        // elementwise tensor * tensor
+        const outData = new Float32Array(this.data.length);
+        for (let i = 0; i < this.data.length; i++)
+            outData[i] = this.data[i] * other.data[i];
+        const out = new Tensor(outData, this.shape, [this, other], "*");
+        out._backward = () => {
+            for (let i = 0; i < out.grad.length; i++) {
+                this.grad[i] += other.data[i] * out.grad[i];
+                other.grad[i] += this.data[i] * out.grad[i];
+            }
+        };
+        return out;
     }
 
     matmul(weight: Tensor): Tensor {
@@ -140,6 +154,20 @@ export class Tensor {
                     this.grad[b * O + i] += out.data[b * O + i] * (out.grad[b * O + i] - dot); 
                 }
         };
+        return out;
+    }
+
+    // adds all elements in the tensor's data tgt
+    // creates a new output tensor containing the single sum value
+    // stores the current tensor as a dependency so the gradient can flow back
+    sum(): Tensor {
+        const total = this.data.reduce((a, b) => a + b, 0);
+        const out = new Tensor(new Float32Array([total]), [1, 1], [this], "sum")
+        out._backward = () => {
+            // gradient flows back equally to every element
+            for (let i = 0; i < this.grad.length; i++)
+                this.grad[i] += out.grad[0];
+        }
         return out;
     }
 
