@@ -21,15 +21,35 @@ export class Tensor {
 
     add(other: Tensor): Tensor {
         const outData = new Float32Array(this.data.length);
-        for (let i = 0; i < this.data.length; i++)
-            outData[i] = this.data[i] + other.data[i];
+        const [B, O] = this.shape;
+        const [,O2] = other.shape;
+
+        // broadcasting: allows ops between tensors of diff shapes by automatically expanding smalelr tensors to match the larger one
+        // if other has shape [1, O2] while "this" has shape [B, O2] where B > 1
+        const broadcast = other.shape[0] === 1 && B > 1;
+        for (let b = 0; b < B; b++)
+            for(let o = 0; o < O; o++)
+                outData[b*O+o] = this.data[b * O + o] + other.data[(broadcast ? 0 : b) * O2 + o];
         const out = new Tensor(outData, this.shape, [this, other], "+");
-        return out
+        out._backward = () => {
+            for (let b = 0; b < B; b++)
+                for (let o = 0; o < O; o++) {
+                    // takes the gradient from the output and adds it to the grad of first tensor
+                    this.grad[b*O+o] += out.grad[b*O+o];
+                    // if other was broadcasted, all batch elements' grad contribute to the single row at index 0 (it gets summed)
+                    other.grad[(broadcast ? 0 : b) * O2 + o] += out.grad[b * O + o]; 
+                }
+        }
+        return out;
     }
 
     mul(scalar: number): Tensor {
         const outData = this.data.map(v => v * scalar);
         const out = new Tensor(outData, this.shape, [this], "*");
+        out._backward = () => {
+            for (let i = 0; i < out.grad.length; i++)
+                this.grad[i] += scalar * out.grad[i];
+        }
         return out
     }
 
@@ -54,12 +74,29 @@ export class Tensor {
                     outData[b * O + o] += this.data[b * I + i] * weight.data[i * O + o]
 
         const out = new Tensor(outData, [B, O], [this, weight], "matmul")
+        out._backward = () => {
+            // d(loss)/d(input) = d(Loss)/d(out) @ weight.T
+            for (let b = 0; b < B; b++)
+                for (let i = 0; i < I; i++)
+                    for (let o = 0; o < O; o++)
+                        this.grad[b * I + i] += out.grad[b * O + o] * weight.data[i * O + o];
+
+            // d(Loss)/d(weight) = input.T @ d(Loss)/d(out)                                    
+              for (let i = 0; i < I; i++)                                                        
+                  for (let o = 0; o < O; o++)                                                    
+                      for (let b = 0; b < B; b++)
+                          weight.grad[i * O + o] += this.data[b * I + i] * out.grad[b * O + o];
+        };
         return out;
     }
 
     relu(): Tensor {
         const outData = this.data.map(v => Math.max(0, v));
         const out = new Tensor(outData, this.shape, [this], "ReLU");
+        out._backward = () => {
+            for (let i = 0; i < out.grad.length; i++)
+                this.grad[i] += (out.data[i] > 0 ? 1 : 0) * out.grad[i];
+        }
         return out
     }
 
@@ -67,6 +104,10 @@ export class Tensor {
     log(): Tensor {
         const outData = this.data.map(v => Math.log(v + 1e-8)); // 1e-8 prevents log(0)
         const out = new Tensor(outData, this.shape, [this], "log");
+        out._backward = () => {
+            for (let i = 0; i < out.grad.length; i++)
+                this.grad[i] += (1 / (this.data[i] + 1e-8)) * out.grad[i];
+        };
         return out;
     }
 
@@ -87,7 +128,19 @@ export class Tensor {
             for (let o = 0; o < O; o++) outData[b * O + o] /= sum;
         }
         const out = new Tensor(outData, this.shape, [this], "softmax");
-        return out
+        out._backward = () => {
+            // d(softmax)/d(x_i) = softmax_i * (1 - softmax_i) -- diagonal
+            // softmax_i * (delta_ij - softmax_j) -- full jacobian
+            // simplified when combined w c-e: grad = softmax - one_hot
+            // we do the full version (the simplification happens in the loss)
+            for(let b = 0; b < B; b++)
+                for(let i = 0; i < O; i++){
+                    let dot = 0;
+                    for (let j = 0; j < O; j++) dot += out.grad[b * O + j] * out.data[b * O +  j];
+                    this.grad[b * O + i] += out.data[b * O + i] * (out.grad[b * O + i] - dot); 
+                }
+        };
+        return out;
     }
 
     // backward pass
