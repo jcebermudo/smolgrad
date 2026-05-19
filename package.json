@@ -1,0 +1,15 @@
+{
+  "name": "kapi",
+  "version": "1.0.0",
+  "description": "Kapi is a tiny deep learning framework in TypeScript. It's meant to be a learning tool for understanding how to build and train simple neural networks.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^25.9.0"
+  }
+}
