@@ -13,6 +13,7 @@ export class Tensor {
 
     constructor(data: Float32Array, shape: [number, number], _children: Tensor[] = [], _op: string = "") {
         this.data = data;
+        this.shape = shape;
         this.grad = new Float32Array(data.length);
         this._backward = () => {};
         this._prev = new Set(_children);
